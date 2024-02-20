@@ -1,6 +1,6 @@
 # Geometric Algebra for Odin
 
-An implementation of [https://bivector.net/](Geometric Algebra) for in the [https://odin-lang.org/](Odin) language.
+An implementation of [Geometric Algebra](https://bivector.net/) for in the [Odin](https://odin-lang.org/) language.
 
 Supports:
-* [https://bivector.net/tools.html?p=3&q=0&r=1](3D Projective Geometric Algebra), a.k.a. PGA3D
+* [3D Projective Geometric Algebra(https://bivector.net/tools.html?p=3&q=0&r=1), a.k.a. PGA3D
