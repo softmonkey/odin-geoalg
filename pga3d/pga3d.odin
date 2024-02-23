@@ -1,11 +1,8 @@
 // 3D Projective Geometric Algebra
 // Based on code from https://bivector.net/tools.html?p=3&q=0&r=1
-// todo! add support for f16/f64
-// (operator overload not availble in Odin, but a symbol alias for proc would be interesting)
 
 package bivector_pga3d
 
-import "base:builtin"
 import "core:math"
 import "core:strings"
 import "core:fmt"
@@ -16,11 +13,23 @@ import "core:testing"
 // 3DPGA type
 pga3d :: distinct [16]f32
 
-// Colored output with fmt
+// Proc groups
+add       :: proc { add_pga3d, add_multi_pga3d, adds_pga3d, sadd_pga3d, }
+sub       :: proc { sub_pga3d, sub_multi_pga3d, ssub_pga3d, subs_pga3d, }
+outer     :: proc { outer_pga3d, outer_multi_pga3d, }
+mul       :: proc { mul_pga3d, mul_multi_pga3d, smul_pga3d, muls_pga3d, }
+reverse   :: proc { reverse_pga3d, }
+dual      :: proc { dual_pga3d, }
+conj      :: proc { conjugate_pga3d, }
+involute  :: proc { involute_pga3d, }
+regress   :: proc { regress_pga3d, }
+inner     :: proc { inner_pga3d, }
+
+// fmt support
 COLORED_FMT := true
 
 @(private="file")
-basis_labels : [16]string = { "","e0","e1","e2","e3","e01","e02","e03","e12","e31","e23","e021","e013","e032","e123","e0123" }
+pga3d_basis_labels : [16]string = { "","e0","e1","e2","e3","e01","e02","e03","e12","e31","e23","e021","e013","e032","e123","e0123" }
 
 @(init, private="file")
 init :: proc() {
@@ -52,37 +61,24 @@ fmt_pga3d :: proc(a: ^pga3d) -> string {
   if err != nil { return "" }
   defer strings.builder_destroy(&builder)
 
-  // playing with ouput colors
-  // "%s%.3f%s"
-  // "%s%.3f\x1B[96m%s\033[0m"          // blue basis
-  // "%s%.3f\x1B[38;5;202m%s\033[0m"    // orange basis
-  // "%s%.3f\x1B[38;5;214m%s\033[0m"    // yellow basis
-  // "%s\x1B[38;5;81m%.3f\x1B[38;5;214m%s\033[0m"       // blue scalars, yellow basis
   tmpl := COLORED_FMT ? "%s\x1B[38;5;81m%.3f\x1B[38;5;214m%s\033[0m" : "%s%.3f%s"
 
   for val,idx in a {
     if math.abs(val) >= math.F32_EPSILON {
       fmt.sbprintf( &builder, tmpl, 
-        len(builder.buf)>0 ? "+" : "", 
+        len(builder.buf)>0 ? ", " : "", 
         val, 
-        basis_labels[idx] )
+        pga3d_basis_labels[idx] )
     }
   }
+  if len(builder.buf) == 0 { return "\x1B[38;5;81m0.000\033[0m" }
   return strings.to_string(builder)
 }
 
-add       :: proc { add_pga3d, add_multi_pga3d, adds_pga3d, sadd_pga3d, }
-sub       :: proc { sub_pga3d, sub_multi_pga3d, ssub_pga3d, subs_pga3d, }
-outer     :: proc { outer_pga3d, outer_multi_pga3d, }
-mul       :: proc { mul_pga3d, mul_multi_pga3d, smul_pga3d, muls_pga3d, }
-reverse   :: proc { reverse_pga3d, }
-dual      :: proc { dual_pga3d, }
-conj      :: proc { conjugate_pga3d, }
-involute  :: proc { involute_pga3d, }
-regress   :: proc { regress_pga3d, }
-inner     :: proc { inner_pga3d, }
+// procs
 
-@(private="file") reverse_pga3d :: #force_inline proc(a : pga3d) -> (res: pga3d) {
+// Reverse ~a
+reverse_pga3d :: #force_inline proc(a : pga3d) -> (res: pga3d) {
   res[0]   =  a[0]
   res[1]   =  a[1]
   res[2]   =  a[2]
@@ -102,7 +98,8 @@ inner     :: proc { inner_pga3d, }
   return
 }
 
-@(private="file") dual_pga3d :: #force_inline proc(a : pga3d) -> (res: pga3d) {
+// Dual !a
+dual_pga3d :: #force_inline proc(a : pga3d) -> (res: pga3d) {
   res[0]   =  a[15]
   res[1]   =  a[14]
   res[2]   =  a[13]
@@ -122,7 +119,8 @@ inner     :: proc { inner_pga3d, }
   return
 }
 
-@(private="file") conjugate_pga3d :: #force_inline proc(a : pga3d) -> (res: pga3d) {
+// Conjugate
+conjugate_pga3d :: #force_inline proc(a : pga3d) -> (res: pga3d) {
   res[0]   =  a[0]
   res[1]   = -a[1]
   res[2]   = -a[2]
@@ -142,7 +140,8 @@ inner     :: proc { inner_pga3d, }
   return
 }
 
-@(private="file") involute_pga3d :: #force_inline proc(a: pga3d) -> (res: pga3d) {
+// Involute
+involute_pga3d :: #force_inline proc(a: pga3d) -> (res: pga3d) {
   res[0]   =  a[0]
   res[1]   = -a[1]
   res[2]   = -a[2]
@@ -162,7 +161,8 @@ inner     :: proc { inner_pga3d, }
   return
 }
 
-@(private="file") mul_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) {
+// Mul (a*b)
+mul_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) {
   res[0]=b[0]*a[0]+b[2]*a[2]+b[3]*a[3]+b[4]*a[4]-b[8]*a[8]-b[9]*a[9]-b[10]*a[10]-b[14]*a[14]
   res[1]=b[1]*a[0]+b[0]*a[1]-b[5]*a[2]-b[6]*a[3]-b[7]*a[4]+b[2]*a[5]+b[3]*a[6]+b[4]*a[7]+b[11]*a[8]+b[12]*a[9]+b[13]*a[10]+b[8]*a[11]+b[9]*a[12]+b[10]*a[13]+b[15]*a[14]-b[14]*a[15]
   res[2]=b[2]*a[0]+b[0]*a[2]-b[8]*a[3]+b[9]*a[4]+b[3]*a[8]-b[4]*a[9]-b[14]*a[10]-b[10]*a[14]
@@ -182,7 +182,7 @@ inner     :: proc { inner_pga3d, }
   return
 }
 
-@(private="file") mul_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
+mul_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
   res = a[0]
   for i in a[1:] {
     res = mul_pga3d(res, i)
@@ -190,11 +190,11 @@ inner     :: proc { inner_pga3d, }
   return
 }
 
-@(require_results) smul_pga3d :: #force_inline proc(a: f32, b: pga3d) -> (res: pga3d) { return a*b }
-@(require_results) muls_pga3d :: #force_inline proc(a: pga3d, b: f32) -> (res: pga3d) { return a*b }
+smul_pga3d :: #force_inline proc(a: f32, b: pga3d) -> (res: pga3d) { return a*b }
+muls_pga3d :: #force_inline proc(a: pga3d, b: f32) -> (res: pga3d) { return a*b }
 
 // Outer product (a ^ b)
-@(private="file") outer_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) {
+outer_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) {
   res[0]=b[0]*a[0]
   res[1]=b[1]*a[0]+b[0]*a[1]
   res[2]=b[2]*a[0]+b[0]*a[2]
@@ -214,7 +214,6 @@ inner     :: proc { inner_pga3d, }
   return
 }
 
-@(private="file")
 outer_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
   res = a[0]
   for i in a[1:] {
@@ -223,28 +222,28 @@ outer_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
   return
 }
 
-// Regressive product (a & b)
-@(private="file") regress_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) {
-  res[15]=1*(a[15]*b[15])
-  res[14]=-1*(a[14]*-1*b[15]+a[15]*b[14]*-1)
-  res[13]=-1*(a[13]*-1*b[15]+a[15]*b[13]*-1)
-  res[12]=-1*(a[12]*-1*b[15]+a[15]*b[12]*-1)
-  res[11]=-1*(a[11]*-1*b[15]+a[15]*b[11]*-1)
-  res[10]=1*(a[10]*b[15]+a[13]*-1*b[14]*-1-a[14]*-1*b[13]*-1+a[15]*b[10])
-  res[9]=1*(a[9]*b[15]+a[12]*-1*b[14]*-1-a[14]*-1*b[12]*-1+a[15]*b[9])
-  res[8]=1*(a[8]*b[15]+a[11]*-1*b[14]*-1-a[14]*-1*b[11]*-1+a[15]*b[8])
-  res[7]=1*(a[7]*b[15]+a[12]*-1*b[13]*-1-a[13]*-1*b[12]*-1+a[15]*b[7])
-  res[6]=1*(a[6]*b[15]-a[11]*-1*b[13]*-1+a[13]*-1*b[11]*-1+a[15]*b[6])
-  res[5]=1*(a[5]*b[15]+a[11]*-1*b[12]*-1-a[12]*-1*b[11]*-1+a[15]*b[5])
-  res[4]=1*(a[4]*b[15]-a[7]*b[14]*-1+a[9]*b[13]*-1-a[10]*b[12]*-1-a[12]*-1*b[10]+a[13]*-1*b[9]-a[14]*-1*b[7]+a[15]*b[4])
-  res[3]=1*(a[3]*b[15]-a[6]*b[14]*-1-a[8]*b[13]*-1+a[10]*b[11]*-1+a[11]*-1*b[10]-a[13]*-1*b[8]-a[14]*-1*b[6]+a[15]*b[3])
-  res[2]=1*(a[2]*b[15]-a[5]*b[14]*-1+a[8]*b[12]*-1-a[9]*b[11]*-1-a[11]*-1*b[9]+a[12]*-1*b[8]-a[14]*-1*b[5]+a[15]*b[2])
-  res[1]=1*(a[1]*b[15]+a[5]*b[13]*-1+a[6]*b[12]*-1+a[7]*b[11]*-1+a[11]*-1*b[7]+a[12]*-1*b[6]+a[13]*-1*b[5]+a[15]*b[1])
-  res[0]=1*(a[0]*b[15]+a[1]*b[14]*-1+a[2]*b[13]*-1+a[3]*b[12]*-1+a[4]*b[11]*-1+a[5]*b[10]+a[6]*b[9]+a[7]*b[8]+a[8]*b[7]+a[9]*b[6]+a[10]*b[5]-a[11]*-1*b[4]-a[12]*-1*b[3]-a[13]*-1*b[2]-a[14]*-1*b[1]+a[15]*b[0])
+// Regressive product (a&b)
+regress_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) {
+  res[15] = 1*(a[15]*b[15])
+  res[14] = -1*(a[14]*-1*b[15]+a[15]*b[14]*-1)
+  res[13] = -1*(a[13]*-1*b[15]+a[15]*b[13]*-1)
+  res[12] = -1*(a[12]*-1*b[15]+a[15]*b[12]*-1)
+  res[11] = -1*(a[11]*-1*b[15]+a[15]*b[11]*-1)
+  res[10] = 1*(a[10]*b[15]+a[13]*-1*b[14]*-1-a[14]*-1*b[13]*-1+a[15]*b[10])
+  res[9]  = 1*(a[9]*b[15]+a[12]*-1*b[14]*-1-a[14]*-1*b[12]*-1+a[15]*b[9])
+  res[8]  = 1*(a[8]*b[15]+a[11]*-1*b[14]*-1-a[14]*-1*b[11]*-1+a[15]*b[8])
+  res[7]  = 1*(a[7]*b[15]+a[12]*-1*b[13]*-1-a[13]*-1*b[12]*-1+a[15]*b[7])
+  res[6]  = 1*(a[6]*b[15]-a[11]*-1*b[13]*-1+a[13]*-1*b[11]*-1+a[15]*b[6])
+  res[5]  = 1*(a[5]*b[15]+a[11]*-1*b[12]*-1-a[12]*-1*b[11]*-1+a[15]*b[5])
+  res[4]  = 1*(a[4]*b[15]-a[7]*b[14]*-1+a[9]*b[13]*-1-a[10]*b[12]*-1-a[12]*-1*b[10]+a[13]*-1*b[9]-a[14]*-1*b[7]+a[15]*b[4])
+  res[3]  = 1*(a[3]*b[15]-a[6]*b[14]*-1-a[8]*b[13]*-1+a[10]*b[11]*-1+a[11]*-1*b[10]-a[13]*-1*b[8]-a[14]*-1*b[6]+a[15]*b[3])
+  res[2]  = 1*(a[2]*b[15]-a[5]*b[14]*-1+a[8]*b[12]*-1-a[9]*b[11]*-1-a[11]*-1*b[9]+a[12]*-1*b[8]-a[14]*-1*b[5]+a[15]*b[2])
+  res[1]  = 1*(a[1]*b[15]+a[5]*b[13]*-1+a[6]*b[12]*-1+a[7]*b[11]*-1+a[11]*-1*b[7]+a[12]*-1*b[6]+a[13]*-1*b[5]+a[15]*b[1])
+  res[0]  = 1*(a[0]*b[15]+a[1]*b[14]*-1+a[2]*b[13]*-1+a[3]*b[12]*-1+a[4]*b[11]*-1+a[5]*b[10]+a[6]*b[9]+a[7]*b[8]+a[8]*b[7]+a[9]*b[6]+a[10]*b[5]-a[11]*-1*b[4]-a[12]*-1*b[3]-a[13]*-1*b[2]-a[14]*-1*b[1]+a[15]*b[0])
   return
 }
 
-// Inner product (a | b)
+// Inner product (a|b)
 inner_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) {
   res[0]=b[0]*a[0]+b[2]*a[2]+b[3]*a[3]+b[4]*a[4]-b[8]*a[8]-b[9]*a[9]-b[10]*a[10]-b[14]*a[14]
   res[1]=b[1]*a[0]+b[0]*a[1]-b[5]*a[2]-b[6]*a[3]-b[7]*a[4]+b[2]*a[5]+b[3]*a[6]+b[4]*a[7]+b[11]*a[8]+b[12]*a[9]+b[13]*a[10]+b[8]*a[11]+b[9]*a[12]+b[10]*a[13]+b[15]*a[14]-b[14]*a[15]
@@ -273,10 +272,22 @@ inner_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
   return
 }
 
-// Addition (a + b)
+// Addition (a+b)
 add_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) { return a+b }
-@(require_results) sadd_pga3d :: #force_inline proc(a: f32, b: pga3d) -> (res: pga3d) { return a+b }
-@(require_results) adds_pga3d :: #force_inline proc(a: pga3d, b: f32) -> (res: pga3d) { return a+b }
+
+@(require_results) 
+sadd_pga3d :: #force_inline proc(a: f32, b: pga3d) -> (res: pga3d) {
+  res = b 
+  res[0] = a+b[0]
+  return 
+}
+
+@(require_results) 
+adds_pga3d :: #force_inline proc(a: pga3d, b: f32) -> (res: pga3d) { 
+  res = a
+  res[0] = a[0]+b
+  return
+}
 
 add_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
   res = a[0]
@@ -286,10 +297,20 @@ add_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
   return
 }
 
-// Subtraction (a - b)
+// Subtraction (a-b)
 @(require_results) sub_pga3d :: #force_inline proc(a: pga3d, b: pga3d) -> (res: pga3d) { return a-b }
-@(require_results) ssub_pga3d :: #force_inline proc(a: f32, b: pga3d) -> (res: pga3d) { return a-b}
-@(require_results) subs_pga3d :: #force_inline proc(a: pga3d, b: f32) -> (res: pga3d) { return a-b }
+
+@(require_results) ssub_pga3d :: #force_inline proc(a: f32, b: pga3d) -> (res: pga3d) { 
+  res = -b
+  res[0] = a-b[0]
+  return
+}
+
+@(require_results) subs_pga3d :: #force_inline proc(a: pga3d, b: f32) -> (res: pga3d) { 
+  res = a
+  res[0] = a[0]-b
+  return
+}
 
 sub_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
   res = a[0]
@@ -298,6 +319,7 @@ sub_multi_pga3d :: proc(a: ..pga3d) -> (res: pga3d) {
   }
   return
 }
+
 
 norm :: #force_inline proc(a: pga3d) -> f32 {
   return math.sqrt(math.abs(mul(a,conj(a))[0]))
@@ -311,6 +333,8 @@ normalized :: #force_inline proc(a: pga3d) -> pga3d {
   return mul(a, 1.0/norm(a))
 }
 
+
+// Primitives
 rotor :: proc(angle: f32, line: pga3d) -> pga3d {
   return add(math.cos(angle/2.0), mul(math.sin(angle/2.0), normalized(line)))
 }
@@ -321,9 +345,9 @@ translator :: proc(dist: f32, line: pga3d) -> pga3d {
 
 // not sure if needed if only used for static e0→e021
 @(private="file")
-make :: proc(f: f32, idx: u32) -> (res: pga3d) {
+make :: #force_inline proc($f: f32, $idx: u32) -> (res: pga3d) {
   res[idx] = f
-  return 
+  return
 }
 
 // e0   : pga3d = make(1.0, 1)
@@ -403,15 +427,15 @@ test_pga3d :: proc(t: ^testing.T) {
 
   point_on_plane := mul( inner(p, px), p )
 
-  fmt.println( "point:", px )
-  fmt.println( "line:", rot )
-  fmt.println( "plane:", p )
-  fmt.println( "rotor:", rot )
-  fmt.println( "rotated line:", rotated_line )
-  fmt.println( "rotated point:", rotated_point )
-  fmt.println( "rotated plane:", rotated_plane )
+  fmt.println( "point:         ", px )
+  fmt.println( "line:          ", rot )
+  fmt.println( "plane:         ", p )
+  fmt.println( "rotor:         ", rot )
+  fmt.println( "rotated line:  ", rotated_line )
+  fmt.println( "rotated point: ", rotated_point )
+  fmt.println( "rotated plane: ", rotated_plane )
   fmt.println( "point on plane:", normalized(point_on_plane) )
-  fmt.println( "point on torus:", point_on_torus(0.0, 0.0) )
+  fmt.println( "point on torus:", point_on_torus(1.0, 0.0) )
 }
 
 @test
