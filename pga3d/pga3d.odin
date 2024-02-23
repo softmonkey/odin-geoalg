@@ -335,17 +335,17 @@ normalized :: #force_inline proc(a: pga3d) -> pga3d {
 
 
 // Primitives
-rotor :: proc(angle: f32, line: pga3d) -> pga3d {
+rotor :: #force_inline proc(angle: f32, line: pga3d) -> pga3d {
   return add(math.cos(angle/2.0), mul(math.sin(angle/2.0), normalized(line)))
 }
 
-translator :: proc(dist: f32, line: pga3d) -> pga3d {
+translator :: #force_inline proc(dist: f32, line: pga3d) -> pga3d {
   return 1.0+ dist/mul(2.0, line)
 }
 
 // not sure if needed if only used for static e0→e021
 @(private="file")
-make :: #force_inline proc($f: f32, $idx: u32) -> (res: pga3d) {
+make :: proc($f: f32, $idx: u32) -> (res: pga3d) {
   res[idx] = f
   return
 }

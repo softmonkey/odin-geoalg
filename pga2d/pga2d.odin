@@ -80,7 +80,7 @@ fmt_pga2d :: proc(a: ^pga2d) -> string {
 // Operations
 
 // ~a
-reverse_pga2d :: proc(a: pga2d) -> (res: pga2d) {
+reverse_pga2d :: #force_inline proc(a: pga2d) -> (res: pga2d) {
   res[0] =  a[0]
   res[1] =  a[1]
   res[2] =  a[2]
@@ -97,7 +97,7 @@ dual_pga2d :: proc(a: pga2d) -> pga2d {
   return swizzle(a, 7,6,5,4,3,2,1,0)
 }
 
-conjugate_pga2d :: proc(a: pga2d) -> (res: pga2d) {
+conjugate_pga2d :: #force_inline proc(a: pga2d) -> (res: pga2d) {
   res[0] =  a[0]
   res[1] = -a[1]
   res[2] = -a[2]
@@ -109,7 +109,7 @@ conjugate_pga2d :: proc(a: pga2d) -> (res: pga2d) {
   return
 }
 
-involute_pga2d :: proc(a: pga2d) -> (res: pga2d){
+involute_pga2d :: #force_inline proc(a: pga2d) -> (res: pga2d){
   res[0] =  a[0]
   res[1] = -a[1]
   res[2] = -a[2]
@@ -122,7 +122,7 @@ involute_pga2d :: proc(a: pga2d) -> (res: pga2d){
 }
 
 // *
-mul_pga2d :: proc(a: pga2d, b: pga2d) -> (res: pga2d) {
+mul_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
   res[0] = b[0]*a[0]+b[2]*a[2]+b[3]*a[3]-b[6]*a[6]
   res[1] = b[1]*a[0]+b[0]*a[1]-b[4]*a[2]+b[5]*a[3]+b[2]*a[4]-b[3]*a[5]-b[7]*a[6]-b[6]*a[7]
   res[2] = b[2]*a[0]+b[0]*a[2]-b[6]*a[3]+b[3]*a[6]
@@ -140,8 +140,8 @@ mul_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) {
   }
   return
 }
-smul_pga2d :: proc(a: f32, b: pga2d) -> pga2d { return a*b }
-muls_pga2d :: proc(a: pga2d, b: f32) -> pga2d { return a*b }
+smul_pga2d :: #force_inline proc(a: f32, b: pga2d) -> pga2d { return a*b }
+muls_pga2d :: #force_inline proc(a: pga2d, b: f32) -> pga2d { return a*b }
 
 // ^
 outer_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
@@ -156,8 +156,9 @@ outer_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
   return
 }
 
-outer_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) { 
+outer_multi_pga2d :: #force_inline proc(a: ..pga2d) -> (res: pga2d) { 
   res = a[0]
+  
   for i in a[1:] { 
     res = outer_pga2d(res, i)
   }
@@ -191,7 +192,7 @@ inner_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
 }
 
 // +
-add_pga2d :: proc(a: pga2d, b: pga2d) -> pga2d { return a + b }
+add_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> pga2d { return a + b }
 add_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) { 
   res = a[0]
   for i in a[1:] { 
@@ -199,12 +200,12 @@ add_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) {
   }
   return
 }
-sadd_pga2d :: proc(a: f32, b: pga2d) -> (res: pga2d) { 
+sadd_pga2d :: #force_inline proc(a: f32, b: pga2d) -> (res: pga2d) { 
   res = b
   res[0] += a
   return
 }
-adds_pga2d :: proc(a: pga2d, b: f32) -> (res: pga2d) { 
+adds_pga2d :: #force_inline proc(a: pga2d, b: f32) -> (res: pga2d) { 
   res = a
   res[0] += b
   return
@@ -219,12 +220,12 @@ sub_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) {
   }
   return
 }
-ssub_pga2d :: proc(a: f32, b: pga2d) -> (res: pga2d) { 
+ssub_pga2d :: #force_inline proc(a: f32, b: pga2d) -> (res: pga2d) { 
   res = -b
   res[0] = a- b[0]
   return
 }
-subs_pga2d :: proc(a: pga2d, b: f32) -> (res: pga2d) { 
+subs_pga2d :: #force_inline proc(a: pga2d, b: f32) -> (res: pga2d) { 
   res = -a
   res[0] = a[0] - b
   return
