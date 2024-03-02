@@ -10,9 +10,6 @@ import "core:io"
 import "core:testing"
 
 pga2d     :: distinct [8]f32
-pga2d_f16 :: distinct [8]f16
-pga2d_f32 :: distinct [8]f32
-pga2d_f64 :: distinct [8]f64
 
 // Proc groups
 add       :: proc { add_pga2d, add_multi_pga2d, adds_pga2d, sadd_pga2d, }
@@ -24,14 +21,14 @@ dual      :: proc { dual_pga2d, }
 conj      :: proc { conjugate_pga2d, }
 involute  :: proc { involute_pga2d, }
 regress   :: proc { regress_pga2d, }
+join      :: proc { regress_pga2d, } 
 inner     :: proc { inner_pga2d, }
-
 
 // fmt support
 COLORED_FMT := true
 
 @(private="file")
-pga2d_basis_labels : [8]string = { "1","e0","e1","e2","e01","e20","e12","e012" }
+pga2d_basis_labels : [8]string = { "1","e0","e1","e2","e0e1","e2e0","e1e2","e0e1e2" }
 
 @(init, private="file")
 init :: proc() {
@@ -80,7 +77,7 @@ fmt_pga2d :: proc(a: ^pga2d) -> string {
 // Operations
 
 // ~a
-reverse_pga2d :: #force_inline proc(a: pga2d) -> (res: pga2d) {
+reverse_pga2d :: proc(a: pga2d) -> (res: pga2d) {
   res[0] =  a[0]
   res[1] =  a[1]
   res[2] =  a[2]
@@ -97,7 +94,7 @@ dual_pga2d :: proc(a: pga2d) -> pga2d {
   return swizzle(a, 7,6,5,4,3,2,1,0)
 }
 
-conjugate_pga2d :: #force_inline proc(a: pga2d) -> (res: pga2d) {
+conjugate_pga2d :: proc(a: pga2d) -> (res: pga2d) {
   res[0] =  a[0]
   res[1] = -a[1]
   res[2] = -a[2]
@@ -109,7 +106,7 @@ conjugate_pga2d :: #force_inline proc(a: pga2d) -> (res: pga2d) {
   return
 }
 
-involute_pga2d :: #force_inline proc(a: pga2d) -> (res: pga2d){
+involute_pga2d :: proc(a: pga2d) -> (res: pga2d){
   res[0] =  a[0]
   res[1] = -a[1]
   res[2] = -a[2]
@@ -122,7 +119,7 @@ involute_pga2d :: #force_inline proc(a: pga2d) -> (res: pga2d){
 }
 
 // *
-mul_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
+mul_pga2d :: proc(a: pga2d, b: pga2d) -> (res: pga2d) {
   res[0] = b[0]*a[0]+b[2]*a[2]+b[3]*a[3]-b[6]*a[6]
   res[1] = b[1]*a[0]+b[0]*a[1]-b[4]*a[2]+b[5]*a[3]+b[2]*a[4]-b[3]*a[5]-b[7]*a[6]-b[6]*a[7]
   res[2] = b[2]*a[0]+b[0]*a[2]-b[6]*a[3]+b[3]*a[6]
@@ -140,11 +137,11 @@ mul_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) {
   }
   return
 }
-smul_pga2d :: #force_inline proc(a: f32, b: pga2d) -> pga2d { return a*b }
-muls_pga2d :: #force_inline proc(a: pga2d, b: f32) -> pga2d { return a*b }
+smul_pga2d :: proc(a: f32, b: pga2d) -> pga2d { return a*b }
+muls_pga2d :: proc(a: pga2d, b: f32) -> pga2d { return a*b }
 
 // ^
-outer_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
+outer_pga2d :: proc(a: pga2d, b: pga2d) -> (res: pga2d) {
   res[0] = b[0]*a[0]
   res[1] = b[1]*a[0]+b[0]*a[1]
   res[2] = b[2]*a[0]+b[0]*a[2]
@@ -156,7 +153,7 @@ outer_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
   return
 }
 
-outer_multi_pga2d :: #force_inline proc(a: ..pga2d) -> (res: pga2d) { 
+outer_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) { 
   res = a[0]
   
   for i in a[1:] { 
@@ -166,7 +163,7 @@ outer_multi_pga2d :: #force_inline proc(a: ..pga2d) -> (res: pga2d) {
 }
 
 // &
-regress_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
+regress_pga2d :: proc(a: pga2d, b: pga2d) -> (res: pga2d) {
   res[7] = a[7]*b[7]
   res[6] = a[6]*b[7]+a[7]*b[6]
   res[5] = a[5]*b[7]+a[7]*b[5]
@@ -179,7 +176,7 @@ regress_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
 }
 
 // |
-inner_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
+inner_pga2d :: proc(a: pga2d, b: pga2d) -> (res: pga2d) {
   res[0] = b[0]*a[0]+b[2]*a[2]+b[3]*a[3]-b[6]*a[6]
   res[1] = b[1]*a[0]+b[0]*a[1]-b[4]*a[2]+b[5]*a[3]+b[2]*a[4]-b[3]*a[5]-b[7]*a[6]-b[6]*a[7]
   res[2] = b[2]*a[0]+b[0]*a[2]-b[6]*a[3]+b[3]*a[6]
@@ -192,7 +189,7 @@ inner_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> (res: pga2d) {
 }
 
 // +
-add_pga2d :: #force_inline proc(a: pga2d, b: pga2d) -> pga2d { return a + b }
+add_pga2d :: proc(a: pga2d, b: pga2d) -> pga2d { return a + b }
 add_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) { 
   res = a[0]
   for i in a[1:] { 
@@ -200,12 +197,12 @@ add_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) {
   }
   return
 }
-sadd_pga2d :: #force_inline proc(a: f32, b: pga2d) -> (res: pga2d) { 
+sadd_pga2d :: proc(a: f32, b: pga2d) -> (res: pga2d) { 
   res = b
   res[0] += a
   return
 }
-adds_pga2d :: #force_inline proc(a: pga2d, b: f32) -> (res: pga2d) { 
+adds_pga2d :: proc(a: pga2d, b: f32) -> (res: pga2d) { 
   res = a
   res[0] += b
   return
@@ -220,42 +217,64 @@ sub_multi_pga2d :: proc(a: ..pga2d) -> (res: pga2d) {
   }
   return
 }
-ssub_pga2d :: #force_inline proc(a: f32, b: pga2d) -> (res: pga2d) { 
+ssub_pga2d :: proc(a: f32, b: pga2d) -> (res: pga2d) { 
   res = -b
   res[0] = a- b[0]
   return
 }
-subs_pga2d :: #force_inline proc(a: pga2d, b: f32) -> (res: pga2d) { 
+subs_pga2d :: proc(a: pga2d, b: f32) -> (res: pga2d) { 
   res = -a
   res[0] = a[0] - b
   return
 }
 
-norm :: #force_inline proc(a: pga2d) -> f32 {
+norm :: proc(a: pga2d) -> f32 {
   return math.sqrt(math.abs(mul(a,conj(a))[0]))
 }
 
-inorm :: #force_inline proc(a: pga2d) -> f32 {
+inorm :: proc(a: pga2d) -> f32 {
   return norm( dual(a) )
 }
 
-normalized :: #force_inline proc(a: pga2d) -> pga2d {
+normalized :: proc(a: pga2d) -> pga2d {
   return mul(a, 1.0/norm(a))
+}
+
+point :: proc(x: f32, y: f32) -> pga2d {
+  return add(e0, mul(e1,x), mul(e2,y), mul(e0e1,x*y) )
+}
+
+
+line :: proc(a, b, c: f32) -> pga2d {
+  return add( mul(e1,a), mul(e2,b), mul(e0,c) )
+}
+
+lerp :: proc(a, b: pga2d, t: f32) -> pga2d {
+  return add(a, mul(sub(b,a), t ))
 }
 
 e0    : pga2d : {0,1,0,0,0,0,0,0}
 e1    : pga2d : {0,0,1,0,0,0,0,0}
 e2    : pga2d : {0,0,0,1,0,0,0,0}
 
-e01   : pga2d : {0,0,0,0,1,0,0,0}
-e20   : pga2d : {0,0,0,0,0,1,0,0}
-e12   : pga2d : {0,0,0,0,0,0,1,0}
+e0e1   : pga2d : {0,0,0,0,1,0,0,0}
+e2e0   : pga2d : {0,0,0,0,0,1,0,0}
+e1e2   : pga2d : {0,0,0,0,0,0,1,0}
 
-e012  : pga2d : {0,0,0,0,0,0,0,1}
+e0e1e2  : pga2d : {0,0,0,0,0,0,0,1}
 
 @test
 test_pga2d :: proc(t: ^testing.T) {
   fmt.println( "e0*e0:  ", mul(e0, e0) )
-  fmt.println( "pss:    ", e012 )
-  fmt.println( "pss*pss:", mul(e012, e012) )
+  fmt.println( "pss:    ", e0e1e2 )
+  fmt.println( "pss*pss:", mul(e0e1e2, e0e1e2) )
+}
+
+@test
+test_pga3d_fmt :: proc(t: ^testing.T) {
+  p := point(2,-1.5)
+
+  fmt.printf( "%s: %v\n", "%v", p )
+  fmt.printf( "%s: %f\n", "%f", p )
+  fmt.printf( "%s: %T\n", "%T", p )
 }
