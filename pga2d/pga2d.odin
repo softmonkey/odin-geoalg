@@ -1,6 +1,8 @@
-package bivector_pga2d
+package geoalg_pga2d
 
 import "base:intrinsics"
+// 2D Projective Geometric Algebra
+// Based on code from https://bivector.net/tools.html?p=2&q=0&r=1
 
 import "core:math"
 import "core:strings"
@@ -8,8 +10,9 @@ import "core:fmt"
 import "core:reflect"
 import "core:io"
 import "core:testing"
+import "core:sys/windows"
 
-pga2d     :: distinct [8]f32
+pga2d :: distinct [8]f32
 
 // Proc groups
 add       :: proc { add_pga2d, add_multi_pga2d, adds_pga2d, sadd_pga2d, }
@@ -25,16 +28,23 @@ join      :: proc { regress_pga2d, }
 inner     :: proc { inner_pga2d, }
 
 // fmt support
-COLORED_FMT := true
+FMT_COLORED := true
+FMT_UNICODE := true
 
 @(private="file")
-pga2d_basis_labels : [8]string = { "1","e0","e1","e2","e0e1","e2e0","e1e2","e0e1e2" }
+basis_labels_unicode : [8]string = { "1","e₀","e₁","e₂","e₀₁","e₂₀","e₁₂","e₀₁₂" }
+@(private="file")
+basis_labels : [8]string = { "1","e0","e1","e2","e0e1","e2e0","e1e2","e0e1e2" }
 
 @(init, private="file")
 init :: proc() {
   fmt.set_user_formatters(&pga2d_formatters)
   err := fmt.register_user_formatter(type_info_of(pga2d).id, User_Formatter)
   assert(err == .None)
+
+  when ODIN_OS == .Windows {
+    windows.SetConsoleOutputCP(windows.CP_UTF8)
+  }
 }
 
 @(private="file")
@@ -60,17 +70,19 @@ fmt_pga2d :: proc(a: ^pga2d) -> string {
   if err != nil { return "" }
   defer strings.builder_destroy(&builder)
 
-  tmpl := COLORED_FMT ? "%s\x1B[38;5;81m%.3f\x1B[38;5;214m%s\033[0m" : "%s%.3f%s"
+  tmpl := FMT_COLORED ? "%s\x1B[38;5;81m%.3f\x1B[38;5;214m%s\033[0m" : "%s%.3f%s"
 
+  fmt.sbprint( &builder, "[" )
   for val,idx in a {
     if math.abs(val) >= math.F32_EPSILON {
       fmt.sbprintf( &builder, tmpl, 
-        len(builder.buf)>0 ? ", " : "", 
+        len(builder.buf)>1 ? ", " : "", 
         val, 
-        pga2d_basis_labels[idx] )
+        FMT_UNICODE ? basis_labels_unicode[idx] : basis_labels[idx] )
     }
   }
-  if len(builder.buf) == 0 { return "\x1B[38;5;81m0.000\033[0m" }
+  if len(builder.buf) == 1 { fmt.sbprint(&builder,"\x1B[38;5;81m0.000\033[0m") }
+  fmt.sbprint( &builder, "]" )
   return strings.to_string(builder)
 }
 
@@ -94,6 +106,7 @@ dual_pga2d :: proc(a: pga2d) -> pga2d {
   return swizzle(a, 7,6,5,4,3,2,1,0)
 }
 
+// a*
 conjugate_pga2d :: proc(a: pga2d) -> (res: pga2d) {
   res[0] =  a[0]
   res[1] = -a[1]
@@ -271,7 +284,20 @@ test_pga2d :: proc(t: ^testing.T) {
 }
 
 @test
-test_pga3d_fmt :: proc(t: ^testing.T) {
+test_pga2d_fmt_unicode :: proc(t: ^testing.T) {
+  FMT_UNICODE = true
+
+  p := point(2,-1.5)
+
+  fmt.printf( "%s: %v\n", "%v", p )
+  fmt.printf( "%s: %f\n", "%f", p )
+  fmt.printf( "%s: %T\n", "%T", p )
+}
+
+@test
+test_pga2d_fmt :: proc(t: ^testing.T) {
+  FMT_UNICODE = false
+
   p := point(2,-1.5)
 
   fmt.printf( "%s: %v\n", "%v", p )

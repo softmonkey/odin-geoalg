@@ -1,4 +1,4 @@
-package bivector
+package geoalg
 
 
 // playing with ouput colors in fmt

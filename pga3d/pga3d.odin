@@ -1,7 +1,7 @@
 // 3D Projective Geometric Algebra
 // Based on code from https://bivector.net/tools.html?p=3&q=0&r=1
 
-package bivector_pga3d
+package geoalg_pga3d
 
 import "core:math"
 import "core:strings"
@@ -9,6 +9,7 @@ import "core:fmt"
 import "core:reflect"
 import "core:io"
 import "core:testing"
+import "core:sys/windows"
 
 // 3DPGA type
 pga3d :: distinct [16]f32
@@ -27,16 +28,24 @@ inner     :: proc { inner_pga3d, }
 dot       :: proc { inner_pga3d, }
 
 // fmt support
-COLORED_FMT := true
+FMT_COLORED := true
+FMT_UNICODE := true
 
 @(private="file")
-pga3d_basis_labels : [16]string = { "","e0","e1","e2","e3","e0e1","e0e2","e0e3","e1e2","e3e1","e2e3","e0e2e1","e0e1e3","e0e3e2","e1e2e3","e0e1e2e3" }
+basis_labels_unicode : [16]string = { "","e₀","e₁","e₂","e₃","e₀₁","e₀₂","e₀₃","e₁₂","e₃₁","e₂₃","e₀₂₁","e₀₁₃","e₀₃₂","e₁₂₃","e₀₁₂" }
+@(private="file")
+basis_labels : [16]string = { "","e0","e1","e2","e3","e0e1","e0e2","e0e3","e1e2","e3e1","e2e3","e0e2e1","e0e1e3","e0e3e2","e1e2e3","e0e1e2e3" }
+
 
 @(init, private="file")
 init :: proc() {
   fmt.set_user_formatters(&pga3d_formatters)
   err := fmt.register_user_formatter(type_info_of(pga3d).id, User_Formatter)
   assert(err == .None)
+
+  when ODIN_OS == .Windows {
+    windows.SetConsoleOutputCP(windows.CP_UTF8)
+  }
 }
 
 @(private="file")
@@ -62,17 +71,19 @@ fmt_pga3d :: proc(a: ^pga3d) -> string {
   if err != nil { return "" }
   defer strings.builder_destroy(&builder)
 
-  tmpl := COLORED_FMT ? "%s\x1B[38;5;81m%.3f\x1B[38;5;214m%s\033[0m" : "%s%.3f%s"
+  tmpl := FMT_COLORED ? "%s\x1B[38;5;81m%.3f\x1B[38;5;214m%s\033[0m" : "%s%.3f%s"
 
+  fmt.sbprint( &builder, "[" )
   for val,idx in a {
     if math.abs(val) >= math.F32_EPSILON {
       fmt.sbprintf( &builder, tmpl, 
-        len(builder.buf)>0 ? ", " : "", 
+        len(builder.buf)>1 ? ", " : "", 
         val, 
-        pga3d_basis_labels[idx] )
+        FMT_UNICODE ? basis_labels_unicode[idx] : basis_labels[idx] )
     }
   }
-  if len(builder.buf) == 0 { return "\x1B[38;5;81m0.000\033[0m" }
+  if len(builder.buf) == 1 { fmt.sbprint(&builder,"\x1B[38;5;81m0.000\033[0m") }
+  fmt.sbprint( &builder, "]" )
   return strings.to_string(builder)
 }
 
@@ -356,29 +367,11 @@ translator :: proc(dist: f32, line: pga3d) -> pga3d {
   return 1.0+ dist/mul(2.0, line)
 }
 
-// not sure if needed if only used for static e0→e021
 @(private="file")
 make :: proc($f: f32, $idx: u32) -> (res: pga3d) {
   res[idx] = f
   return
 }
-
-// e0   : pga3d = make(1.0, 1)
-// e1   : pga3d = make(1.0, 2)
-// e2   : pga3d = make(1.0, 3)
-// e3   : pga3d = make(1.0, 4)
-
-// e01  : pga3d = outer(e0,e1)
-// e02  : pga3d = outer(e0,e2)
-// e03  : pga3d = outer(e0,e3)
-// e12  : pga3d = outer(e1,e2)
-// e31  : pga3d = outer(e3,e1)
-// e23  : pga3d = outer(e2,e3)
-
-// e123 : pga3d = outer(e1, e2, e3)
-// e032 : pga3d = outer(e0, e3, e2)
-// e013 : pga3d = outer(e0, e1, e3)
-// e021 : pga3d = outer(e0, e2, e1)
 
 // const basis
 e0    : pga3d : {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -422,8 +415,6 @@ point_on_torus :: proc( s, t : f32) -> pga3d {
 /* Tests */
 @test
 test_pga3d :: proc(t: ^testing.T) {
-  // todo! actually do some testing
-
   rot := rotor( math.PI / 2.0, outer( e1, e2 ) )
 
   ax_z := outer( e1, e2 )
